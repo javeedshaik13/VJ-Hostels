@@ -8,9 +8,10 @@ router.get('/google',
 );
 
 router.get('/google/callback', 
-    passport.authenticate('google', { failureRedirect: '/' }),
+    passport.authenticate('google', { failureRedirect: 'http://localhost:5173/login' }),
         (req, res) => {
-            res.redirect('http://localhost:5173/login'); // Redirect to your dashboard or home page after successful login
+            console.log("✅ Logged in user:", req.user);
+            res.redirect('http://localhost:5173/home'); // Redirect to your dashboard or home page after successful login
         }
 );
 

@@ -41,3 +41,21 @@ passport.use(new GoogleStrategy({
         return done(err, null);
     }
 }));
+
+
+passport.serializeUser((user, done) => {
+  done(null, user.id); // store only the MongoDB ID in the session
+});
+
+passport.deserializeUser(async (id, done) => {
+  try {
+    // Try finding in Student first
+    let user = await Student.findById(id);
+    if (!user) {
+      user = await Admin.findById(id);
+    }
+    done(null, user);
+  } catch (err) {
+    done(err, null);
+  }
+});

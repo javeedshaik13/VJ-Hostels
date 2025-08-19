@@ -10,6 +10,8 @@ const passport = require('passport');
 const session = require('express-session');
 require('./config/passport');
 
+const authRoutes = require('./routes/authRoutes');
+
 const adminApp = require('./APIs/adminAPI');
 const studentApp = require('./APIs/studentAPI');
 const messageApp = require('./APIs/messageAPI');
@@ -31,6 +33,7 @@ app.use('/admin-api', adminApp);
 app.use('/message-api', messageApp);
 app.use('/food-api', foodApp);
 // app.use('/complaint-api',complaintApp);
+app.use('/auth', authRoutes);
 
 app.use(session({
     secret: process.env.JWT_SECRET,
