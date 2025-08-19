@@ -6,6 +6,9 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const cors = require('cors');
 const Message = require('./models/MessageModel');
+const passport = require('passport');
+const session = require('express-session');
+require('./config/passport');
 
 const adminApp = require('./APIs/adminAPI');
 const studentApp = require('./APIs/studentAPI');
@@ -28,6 +31,15 @@ app.use('/admin-api', adminApp);
 app.use('/message-api', messageApp);
 app.use('/food-api', foodApp);
 // app.use('/complaint-api',complaintApp);
+
+app.use(session({
+    secret: process.env.JWT_SECRET,
+    resave: false,
+    saveUninitialized: false
+}))
+
+app.use(passport.initialize());
+app.use(passport.session());
 
 const port = process.env.PORT || 4000;
 

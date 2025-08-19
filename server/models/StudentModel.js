@@ -3,6 +3,10 @@ const bcrypt = require('bcrypt');
 
 
 const studentSchema = new mongoose.Schema({
+    googleId: { 
+        type: String, 
+        unique: true, 
+        sparse: true },
     rollNumber: {
         type: String,
         required: true,
@@ -23,7 +27,9 @@ const studentSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: true
+        required: function () {
+    return !this.googleId;  // only required if no Google login
+  }
     },
     name: {
         type: String,
