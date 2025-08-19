@@ -8,12 +8,13 @@ passport.use(new GoogleStrategy({
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: process.env.GOOGLE_CALLBACK_URL,
 }, async (accessToken, refreshToken, profile, done) => {
+    console.log('Google email:', profile.emails?.[0]?.value);
     try {
         // Only allow emails from @vnrvjiet.in
         const email = profile.emails[0].value;
-        if (!email.endsWith('@vnrvjiet.in')) {
-            return done(null, false, { message: 'Only institutional emails allowed' });
-        }
+        // if (!email.endsWith('@vnrvjiet.in')) {
+        //     return done(null, false, { message: 'Only institutional emails allowed' });
+        // }
 
         // Check if user exists as Student
         let user = await Student.findOne({ googleId: profile.id });
