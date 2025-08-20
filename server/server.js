@@ -10,6 +10,8 @@ const passport = require('passport');
 const session = require('express-session');
 require('./config/passport');
 
+const authRoutes = require('./routes/authRoutes');
+
 const adminApp = require('./APIs/adminAPI');
 const studentApp = require('./APIs/studentAPI');
 const messageApp = require('./APIs/messageAPI');
@@ -17,20 +19,16 @@ const foodApp = require('./APIs/foodAPI');
 // const complaintApp = require('./APIs/complaintAPI');
 
 // middleware
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true,
+}));
 
 // body parser middleware
 app.use(exp.json());
 
 // Serve static files from uploads directory
 app.use('/uploads', exp.static('uploads'));
-
-// Api connection - Define routes before Socket.IO initialization
-app.use('/student-api', studentApp);
-app.use('/admin-api', adminApp);
-app.use('/message-api', messageApp);
-app.use('/food-api', foodApp);
-// app.use('/complaint-api',complaintApp);
 
 app.use(session({
     secret: process.env.JWT_SECRET,
@@ -40,6 +38,15 @@ app.use(session({
 
 app.use(passport.initialize());
 app.use(passport.session());
+
+
+// Api connection - Define routes before Socket.IO initialization
+app.use('/student-api', studentApp);
+app.use('/admin-api', adminApp);
+app.use('/message-api', messageApp);
+app.use('/food-api', foodApp);
+// app.use('/complaint-api',complaintApp);
+app.use('/auth', authRoutes);
 
 const port = process.env.PORT || 4000;
 

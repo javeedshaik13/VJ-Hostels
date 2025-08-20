@@ -31,14 +31,21 @@ const StudentLogin = () => {
     }
   };
 
+  // Google OAuth handler
+  const handleGoogleLogin = () => {
+    window.location.href = `${import.meta.env.VITE_SERVER_URL}/auth/google`;
+  };
+
   return (
     <div className="login-page" style={{ backgroundImage: `url(${img5})` }}>
       <div className="login-container">
         <div className="login-card">
           <h2 className="login-title">Student Login</h2>
+
+          {/* Existing Roll Number + Password login */}
           <form onSubmit={handleSubmit(onSubmit)} className="login-form">
             <div className="form-group">
-              <label className="form-label">Roll Number</label>
+              <label className="form-label">Roll Number</label> 
               <input
                 type="text"
                 placeholder="Enter your roll number"
@@ -83,6 +90,16 @@ const StudentLogin = () => {
               Login
             </button>
           </form>
+
+          {/* Divider */}
+          <div className="text-center mt-3">
+            <span>OR</span>
+          </div>
+
+          {/* Google OAuth Login */}
+          <button onClick={handleGoogleLogin} className="login-button google-btn">
+            <i className="bi bi-google me-2"></i> Login with Google
+          </button>
         </div>
       </div>
     </div>
