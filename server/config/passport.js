@@ -3,41 +3,63 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const Student = require('../models/StudentModel.js');
 const Admin = require('../models/AdminModel.js');
 
-passport.use(new GoogleStrategy({
+// Student Google OAuth
+passport.use('google-student', new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: process.env.GOOGLE_CALLBACK_URL,
+    callbackURL: `${process.env.SERVER_URL}/auth/student/callback`,
 }, async (accessToken, refreshToken, profile, done) => {
-    console.log('Google email:', profile.emails?.[0]?.value);
     try {
-        // Only allow emails from @vnrvjiet.in
         const email = profile.emails[0].value;
-        // if (!email.endsWith('@vnrvjiet.in')) {
-        //     return done(null, false, { message: 'Only institutional emails allowed' });
-        // }
-
-        // Check if user exists as Student
-        let user = await Student.findOne({ googleId: profile.id });
-        if (!user) {
-            // Or check if exists as Admin
-            user = await Admin.findOne({ googleId: profile.id });
+        if (!email.endsWith('@vnrvjiet.in')) {
+            return done(null, false, { message: 'Only institutional emails allowed' });
         }
 
-        // If not found, create a new Student by default
-        if (!user) {
-            user = await Student.create({
+        let student = await Student.findOne({ googleId: profile.id });
+        if (!student) {
+            student = await Student.create({
                 googleId: profile.id,
-                username: profile.displayName, 
+                username: profile.displayName,
                 name: profile.displayName,
                 email: email,
-                password: 'N/A', 
-                rollNumber: 'N/A', 
+                password: 'N/A',
+                rollNumber: 'N/A',
                 phoneNumber: 'N/A',
                 parentMobileNumber: 'N/A',
             });
         }
 
-        return done(null, user);
+        return done(null, student);
+    } catch (err) {
+        return done(err, null);
+    }
+}));
+
+
+// Admin Google OAuth
+passport.use('google-admin', new GoogleStrategy({
+    clientID: process.env.GOOGLE_CLIENT_ID,
+    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    callbackURL: `${process.env.SERVER_URL}/auth/admin/callback`,
+}, async (accessToken, refreshToken, profile, done) => {
+    try {
+        const email = profile.emails[0].value;
+        if (!email.endsWith('@vnrvjiet.in')) {
+            return done(null, false, { message: 'Only institutional emails allowed' });
+        }
+
+        let admin = await Admin.findOne({ googleId: profile.id });
+        if (!admin) {
+            admin = await Admin.create({
+                googleId: profile.id,
+                username: profile.displayName,
+                name: profile.displayName,
+                email: email,
+                role: 'admin',
+            });
+        }
+
+        return done(null, admin);
     } catch (err) {
         return done(err, null);
     }
@@ -45,15 +67,16 @@ passport.use(new GoogleStrategy({
 
 
 passport.serializeUser((user, done) => {
-  done(null, user.id); // store only the MongoDB ID in the session
+  done(null, { id: user.id, role: user.role || 'student' }); 
 });
 
-passport.deserializeUser(async (id, done) => {
+passport.deserializeUser(async (data, done) => {
   try {
-    // Try finding in Student first
-    let user = await Student.findById(id);
-    if (!user) {
-      user = await Admin.findById(id);
+    let user;
+    if (data.role === 'admin') {
+      user = await Admin.findById(data.id);
+    } else {
+      user = await Student.findById(data.id);
     }
     done(null, user);
   } catch (err) {
