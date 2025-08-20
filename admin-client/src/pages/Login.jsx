@@ -5,6 +5,7 @@ import axios from "axios";
 import { useAdmin } from "../context/AdminContext";
 import backgroundImage from "../assets/1.jpg";
 import { BsEyeFill, BsEyeSlashFill } from "react-icons/bs";
+import { FcGoogle } from "react-icons/fc";
 
 const Login = () => {
   const {
@@ -35,6 +36,10 @@ const Login = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGoogleLogin = () => {
+    window.location.href = `${import.meta.env.VITE_SERVER_URL}/auth/google/admin`;
   };
 
   return (
@@ -166,6 +171,24 @@ const Login = () => {
               )}
             </button>
           </form>
+
+           {/* Google Login Button */}
+          <button
+            onClick={handleGoogleLogin}
+            className="btn w-100 d-flex align-items-center justify-content-center mt-4"
+            style={{
+              backgroundColor: "#fff",
+              color: "#000",
+              border: "1px solid #ddd",
+              fontWeight: "bold",
+              padding: "10px",
+              borderRadius: "5px",
+            }}
+          >
+            <FcGoogle className="me-2" size={20} />
+            Login with Google
+          </button>
+
         </div>
       </div>
     </div>

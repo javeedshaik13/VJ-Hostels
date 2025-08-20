@@ -2,6 +2,10 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcrypt');
 
 const adminSchema = new mongoose.Schema({
+    googleId: { 
+        type: String, 
+        unique: true, 
+        sparse: true },
     username: {
         type: String,
         required: true,
@@ -9,7 +13,9 @@ const adminSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: true
+        required: function () {
+    return !this.googleId;  // only required if no Google login
+  }
     },
     name: {
         type: String,
