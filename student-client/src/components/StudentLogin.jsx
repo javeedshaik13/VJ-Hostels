@@ -48,7 +48,7 @@ const StudentLogin = () => {
                 className="responsive-input"
               />
               {errors.rollNumber && (
-                <small className="error-message">
+                <small className="error-message fade-in">
                   {errors.rollNumber.message}
                 </small>
               )}
@@ -73,7 +73,7 @@ const StudentLogin = () => {
                 </span>
               </div>
               {errors.password && (
-                <small className="error-message">
+                <small className="error-message fade-in">
                   {errors.password.message}
                 </small>
               )}
