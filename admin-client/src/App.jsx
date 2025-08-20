@@ -20,6 +20,7 @@ import Community from './pages/Community';
 import Profile from './pages/Profile';
 import Rooms from './pages/Rooms';
 import Food from './pages/Food';
+import AuthHandler from './pages/AuthHandler';
 
 function App() {
   const { isAuthenticated } = useAdmin();
@@ -39,6 +40,8 @@ function App() {
   return (
     <Routes>
       <Route path="/login" element={!isAuthenticated() ? <Login /> : <Navigate to="/dashboard" replace />} />
+
+      <Route path="/auth/callback" element={<AuthHandler />} />
 
       <Route path="/dashboard" element={isAuthenticated() ? <DashboardLayout /> : <Navigate to="/login" replace />}>
         <Route index element={<Dashboard />} />

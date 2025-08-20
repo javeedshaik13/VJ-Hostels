@@ -2,6 +2,22 @@ const express = require('express');
 const passport = require('passport');
 const router = express.Router();
 
+const jwt = require("jsonwebtoken");
+
+function generateJwt(user) {
+  return jwt.sign(
+    {
+      id: user._id,
+      email: user.email,
+      role: user.role || "admin"
+    },
+    process.env.JWT_SECRET, 
+    { expiresIn: "1h" }
+  );
+}
+
+module.exports = generateJwt;
+
 
 // Student Google OAuth
 router.get('/google', 
@@ -25,8 +41,11 @@ router.get('/google/admin',
 router.get('/admin/callback', 
     passport.authenticate('google-admin', { failureRedirect: 'http://localhost:5173/login' }),
     (req, res) => {
+
+         const jwt = generateJwt(req.user);
+
         // Redirect admin to frontend dashboard after login
-        res.redirect('http://localhost:5173/dashboard');
+        res.redirect(`http://localhost:5173/auth/callback?token=${jwt}&admin=${req.user.email}`);
     }
 );
 
