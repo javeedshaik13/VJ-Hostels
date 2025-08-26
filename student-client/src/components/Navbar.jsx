@@ -1,10 +1,10 @@
-import { useUser } from '../context/UserContext'
+import useCurrentUser from '../hooks/useCurrentUser'
 import { Home, Bell, Users, MessageSquare, LogOut, User, Utensils } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import '../styles/custom.css';
 
 function Navbar({ onNavigate, isDesktop = false }) {
-    const { user } = useUser();
+    const { user, loading } = useCurrentUser();
     const location = useLocation();
 
     const handleNavClick = () => {
@@ -140,25 +140,40 @@ function Navbar({ onNavigate, isDesktop = false }) {
 
             <div className="profile-container">
                 <div className="profile">
-                    {user.profilePhoto ? (
-                        <img
-                            src={user.profilePhoto}
-                            alt="Profile"
-                            className="avatar"
-                            style={{
-                                objectFit: 'cover',
-                                padding: 0
-                            }}
-                        />
-                    ) : (
-                        <div className="avatar">
-                            <span>{user.name ? user.name.charAt(0).toUpperCase() : 'S'}</span>
+                    {user && (
+                        <>
+                            {user.profilePhoto ? (
+                                <img
+                                    src={user.profilePhoto}
+                                    alt="Profile"
+                                    className="avatar"
+                                    style={{
+                                        objectFit: 'cover',
+                                        padding: 0
+                                    }}
+                                />
+                            ) : (
+                                <div className="avatar">
+                                    <span>{user.name ? user.name.charAt(0).toUpperCase() : 'S'}</span>
+                                </div>
+                            )}
+                            <div className="profile-info">
+                                <p className="name mb-0">{user.name || 'Student'}</p>
+                                <p className="id mb-0">ID: {user.rollNumber || 'N/A'}</p>
+                            </div>
+                        </>
+                    )}
+                    {!user && (
+                        <div className="profile">
+                            <div className="avatar">
+                                <span>S</span>
+                            </div>
+                            <div className="profile-info">
+                                <p className="name mb-0">Student</p>
+                                <p className="id mb-0">ID: N/A</p>
+                            </div>
                         </div>
                     )}
-                    <div className="profile-info">
-                        <p className="name mb-0">{user.name}</p>
-                        <p className="id mb-0">ID: {user.rollNumber}</p>
-                    </div>
                 </div>
             </div>
         </div>

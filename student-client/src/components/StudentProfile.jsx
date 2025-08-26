@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { useUser } from '../context/UserContext';
+import useCurrentUser from '../hooks/useCurrentUser';
 
 function StudentProfile() {
-  const { user, login } = useUser();
-  const [activeTab, setActiveTab] = useState('profile');
+  const { user, loading, updateUser } = useCurrentUser();
+  const [activeTab, setActiveTab] = useState('details');
 
   // State for password change
   const [passwordData, setPasswordData] = useState({
@@ -17,6 +17,16 @@ function StudentProfile() {
     phoneNumber: user?.phoneNumber || '',
     parentMobileNumber: user?.parentMobileNumber || '',
   });
+
+  // Update profile data when user changes
+  React.useEffect(() => {
+    if (user) {
+      setProfileData({
+        phoneNumber: user.phoneNumber || '',
+        parentMobileNumber: user.parentMobileNumber || '',
+      });
+    }
+  }, [user]);
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
@@ -121,8 +131,8 @@ function StudentProfile() {
         }
       );
 
-      // Update user context with new profile photo
-      login({
+      // Update user data with new profile photo
+      updateUser({
         ...user,
         profilePhoto: response.data.profilePhoto
       });
@@ -144,7 +154,7 @@ function StudentProfile() {
         profileData
       );
       if (response.data.success) {
-        login({ ...user, ...profileData });
+        updateUser({ ...user, ...profileData });
         alert('Profile updated successfully');
       }
     } catch (error) {
@@ -160,6 +170,26 @@ function StudentProfile() {
     }));
   };
 
+  if (loading) {
+    return (
+      <div style={styles.container}>
+        <div style={{ textAlign: 'center', padding: '2rem' }}>
+          <p>Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div style={styles.container}>
+        <div style={{ textAlign: 'center', padding: '2rem' }}>
+          <p>Please log in to view your profile.</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={styles.container}>
       <h2 style={styles.header}>Student Profile</h2>
@@ -168,17 +198,23 @@ function StudentProfile() {
       <div style={styles.photoContainer}>
         {previewUrl ? (
           <img src={previewUrl} alt="Profile Preview" style={styles.image} />
-        ) : user.profilePhoto ? (
+        ) : user && user.profilePhoto ? (
           <img src={user.profilePhoto} alt="Profile" style={styles.image} />
         ) : (
           <div style={styles.placeholderImage}>
-            {user.name ? user.name.charAt(0).toUpperCase() : 'S'}
+            {user && user.name ? user.name.charAt(0).toUpperCase() : 'S'}
           </div>
         )}
       </div>
 
       {/* Tab Navigation */}
       <div style={styles.tabContainer}>
+        <button
+          style={activeTab === 'details' ? {...styles.tabButton, ...styles.activeTab} : styles.tabButton}
+          onClick={() => setActiveTab('details')}
+        >
+          Student Details
+        </button>
         <button
           style={activeTab === 'profile' ? {...styles.tabButton, ...styles.activeTab} : styles.tabButton}
           onClick={() => setActiveTab('profile')}
@@ -198,6 +234,18 @@ function StudentProfile() {
           Change Password
         </button>
       </div>
+
+      {/* Student Details Tab */}
+      {activeTab === 'details' && (
+        <div style={styles.infoContainer}>
+          <h3 style={styles.subHeader}>Basic Details</h3>
+          <p><strong>Name:</strong> {user?.name || 'N/A'}</p>
+          <p><strong>Roll Number:</strong> {user?.rollNumber || 'N/A'}</p>
+          <p><strong>Email:</strong> {user?.email || 'N/A'}</p>
+          <p><strong>Department:</strong> {user?.department || 'N/A'}</p>
+          <p><strong>Year:</strong> {user?.year || 'N/A'}</p>
+        </div>
+      )}
 
       {/* Profile Info Tab */}
       {activeTab === 'profile' && (

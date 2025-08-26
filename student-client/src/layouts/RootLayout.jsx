@@ -2,16 +2,19 @@ import { useState, useEffect } from 'react'
 import { Outlet, useNavigate } from 'react-router-dom'
 import { Menu, X } from 'lucide-react'
 import Navbar from '../components/Navbar';
+import useCurrentUser from '../hooks/useCurrentUser';
+import DebugAuth from '../components/DebugAuth';
 import backgroundImage from '../assets/1.jpg';
 
 function RootLayout() {
     const navigate = useNavigate();
+    const { clearUser } = useCurrentUser();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
 
     const handleLogout = () => {
-        localStorage.clear();
-        navigate('/');
+        clearUser();
+        navigate('/login');
     };
 
     // Check if device is mobile
@@ -47,6 +50,7 @@ function RootLayout() {
                 backgroundRepeat: 'no-repeat'
             }}
         >
+            {/* <DebugAuth /> */}
             {/* Header */}
             <header className="header-bar">
                 <div className="header-content">

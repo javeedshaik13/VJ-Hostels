@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { useUser } from '../context/UserContext';
+import useCurrentUser from '../hooks/useCurrentUser';
 import { Utensils, Star, MessageSquare } from 'lucide-react';
 
 const Food = () => {
-    const { user } = useUser();
+    const { user, loading: userLoading } = useCurrentUser();
     const [menu, setMenu] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -20,10 +20,10 @@ const Food = () => {
 
     useEffect(() => {
         fetchTodayMenu();
-        if (user?.rollNumber) {
+        if (!userLoading && user?.rollNumber) {
             fetchFeedbackHistory();
         }
-    }, [user?.rollNumber]);
+    }, [user?.rollNumber, userLoading]);
 
     const fetchTodayMenu = async () => {
         try {

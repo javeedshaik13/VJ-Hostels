@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useUser } from '../context/UserContext';
+import useCurrentUser from '../hooks/useCurrentUser';
 import ErrorBoundary from './ErrorBoundary';
 
 const OutpassList = () => {
-    const { user } = useUser();
+    const { user, loading: userLoading } = useCurrentUser();
     const [outpasses, setOutpasses] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -12,6 +12,10 @@ const OutpassList = () => {
 
     useEffect(() => {
         const fetchOutpasses = async () => {
+            if (userLoading) {
+                return; // Wait for user to load
+            }
+
             if (!user) {
                 setError('User not found. Please log in.');
                 setLoading(false);
@@ -32,7 +36,7 @@ const OutpassList = () => {
         };
 
         fetchOutpasses();
-    }, [user.rollNumber]);
+    }, [user, userLoading]);
 
     if (loading) return (
         <div style={{ textAlign: 'center', padding: '2rem' }}>

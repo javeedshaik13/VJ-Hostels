@@ -1,7 +1,6 @@
 const express = require('express');
 const passport = require('passport');
 const router = express.Router();
-
 const jwt = require("jsonwebtoken");
 
 function generateJwt(user) {
@@ -9,14 +8,12 @@ function generateJwt(user) {
     {
       id: user._id,
       email: user.email,
-      role: user.role || "admin"
+      role: user.role || "student"
     },
     process.env.JWT_SECRET, 
     { expiresIn: "1h" }
   );
 }
-
-module.exports = generateJwt;
 
 
 // Student Google OAuth
@@ -24,30 +21,36 @@ router.get('/google',
     passport.authenticate('google-student', { scope: ['profile', 'email'] })
 );
 
-router.get('/student/callback', 
-    passport.authenticate('google-student', { failureRedirect: 'http://localhost:5173/login' }),
-    (req, res) => {
-        // Redirect student to frontend home page after login
-        res.redirect('http://localhost:5173/home');
-    }
+router.get(
+  '/student/callback',
+  (req, res, next) => {
+    passport.authenticate('google-student', (err, user, info) => {
+      if (err) {
+        console.error("Authentication error:", err);
+        return res.redirect(`${process.env.CLIENT_URL}/login?error=auth_failed`);
+      }
+
+      if (!user) {
+        console.log("No user found or unauthorized email");
+        return res.redirect(`${process.env.CLIENT_URL}/login?error=unauthorized`);
+      }
+
+      req.logIn(user, (err) => {
+        if (err) {
+          console.error("Login error:", err);
+          return res.redirect(`${process.env.CLIENT_URL}/login?error=login_failed`);
+        }
+
+        console.log("Successful login for user:", user);
+        const token = generateJwt(user);
+
+        // Redirect with token as URL parameter for frontend to handle
+        return res.redirect(`${process.env.CLIENT_URL}/auth/callback?token=${token}`);
+      });
+    })(req, res, next);
+  }
 );
 
-
-// Admin Google OAuth
-router.get('/google/admin', 
-    passport.authenticate('google-admin', { scope: ['profile', 'email'] })
-);
-
-router.get('/admin/callback', 
-    passport.authenticate('google-admin', { failureRedirect: 'http://localhost:5173/login' }),
-    (req, res) => {
-
-         const jwt = generateJwt(req.user);
-
-        // Redirect admin to frontend dashboard after login
-        res.redirect(`http://localhost:5173/auth/callback?token=${jwt}&admin=${req.user.email}`);
-    }
-);
 
 // Logout route
 router.get('/logout', (req, res) => {
