@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { useUser } from '../context/UserContext';
+import useCurrentUser from '../hooks/useCurrentUser';
 
 const PostComplaint = () => {
-    const { user } = useUser();
+    const { user, loading: userLoading } = useCurrentUser();
     const navigate = useNavigate();
     const [category, setCategory] = useState('');
     const [description, setDescription] = useState('');
@@ -12,6 +12,22 @@ const PostComplaint = () => {
     const [imagePreview, setImagePreview] = useState(null);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+
+    if (userLoading) {
+        return (
+            <div style={{ textAlign: 'center', padding: '2rem' }}>
+                <p>Loading...</p>
+            </div>
+        );
+    }
+
+    if (!user) {
+        return (
+            <div style={{ textAlign: 'center', padding: '2rem' }}>
+                <p>Please log in to post a complaint.</p>
+            </div>
+        );
+    }
 
     const handleImageChange = (e) => {
         const file = e.target.files[0];

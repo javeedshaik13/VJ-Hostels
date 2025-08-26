@@ -27,32 +27,25 @@ router.get(
     passport.authenticate('google-student', (err, user, info) => {
       if (err) {
         console.error("Authentication error:", err);
-        return res.redirect('http://localhost:5173/login?error=auth_failed');
+        return res.redirect(`${process.env.CLIENT_URL}/login?error=auth_failed`);
       }
-      
+
       if (!user) {
         console.log("No user found or unauthorized email");
-        return res.redirect('http://localhost:5173/login?error=unauthorized');
+        return res.redirect(`${process.env.CLIENT_URL}/login?error=unauthorized`);
       }
 
       req.logIn(user, (err) => {
         if (err) {
           console.error("Login error:", err);
-          return res.redirect('http://localhost:5173/login?error=login_failed');
+          return res.redirect(`${process.env.CLIENT_URL}/login?error=login_failed`);
         }
 
         console.log("Successful login for user:", user);
         const token = generateJwt(user);
-        
-        // Set cookie with appropriate settings for development
-        res.cookie('token', token, {
-          httpOnly: true,
-          secure: process.env.NODE_ENV === 'production',
-          sameSite: process.env.NODE_ENV === 'production' ? 'None' : 'Lax',
-          maxAge: 3600000 // 1 hour
-        });
-        
-        return res.redirect('http://localhost:5173/home');
+
+        // Redirect with token as URL parameter for frontend to handle
+        return res.redirect(`${process.env.CLIENT_URL}/auth/callback?token=${token}`);
       });
     })(req, res, next);
   }

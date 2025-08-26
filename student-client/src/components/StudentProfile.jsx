@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import { useUser } from '../context/UserContext';
+import useCurrentUser from '../hooks/useCurrentUser';
 
 function StudentProfile() {
-  const { user, login } = useUser();
+  const { user, loading, updateUser } = useCurrentUser();
   const [activeTab, setActiveTab] = useState('details');
 
   // State for password change
@@ -131,8 +131,8 @@ function StudentProfile() {
         }
       );
 
-      // Update user context with new profile photo
-      login({
+      // Update user data with new profile photo
+      updateUser({
         ...user,
         profilePhoto: response.data.profilePhoto
       });
@@ -154,7 +154,7 @@ function StudentProfile() {
         profileData
       );
       if (response.data.success) {
-        login({ ...user, ...profileData });
+        updateUser({ ...user, ...profileData });
         alert('Profile updated successfully');
       }
     } catch (error) {
@@ -169,6 +169,26 @@ function StudentProfile() {
       [name]: value
     }));
   };
+
+  if (loading) {
+    return (
+      <div style={styles.container}>
+        <div style={{ textAlign: 'center', padding: '2rem' }}>
+          <p>Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div style={styles.container}>
+        <div style={{ textAlign: 'center', padding: '2rem' }}>
+          <p>Please log in to view your profile.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={styles.container}>

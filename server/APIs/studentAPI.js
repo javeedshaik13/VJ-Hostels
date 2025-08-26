@@ -9,6 +9,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const Student = require('../models/StudentModel');
 const { uploadProfilePhoto, uploadComplaintImage, uploadCommunityPostImage } = require('../middleware/uploadMiddleware');
+const { verifyStudent } = require('../middlewares/verifyToken');
 require('dotenv').config();
 
 
@@ -51,7 +52,7 @@ studentApp.post('/login', expressAsyncHandler(async (req, res) => {
                 phoneNumber: student.phoneNumber || '',
                 parentMobileNumber: student.parentMobileNumber || '',
                 email: student.email,
-                roomNumber: student.roomNumber,
+
                 is_active: student.is_active
             }
         });
@@ -60,7 +61,58 @@ studentApp.post('/login', expressAsyncHandler(async (req, res) => {
     }
 }));
 
+// Test endpoint to generate token for existing Google OAuth user (temporary for debugging)
+studentApp.post('/test-token', expressAsyncHandler(async (req, res) => {
+    try {
+        const { email } = req.body;
 
+        const student = await Student.findOne({ email, is_active: true });
+        if (!student) {
+            return res.status(404).json({ message: "Student not found" });
+        }
+
+        const token = jwt.sign({ id: student._id, role: 'student' }, process.env.JWT_SECRET, { expiresIn: '7d' });
+
+        res.status(200).json({
+            message: "Test token generated",
+            token,
+            student: {
+                id: student._id,
+                name: student.name,
+                rollNumber: student.rollNumber,
+                email: student.email
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+}));
+
+// Get current student profile
+studentApp.get('/profile', verifyStudent, expressAsyncHandler(async (req, res) => {
+    try {
+        const student = await Student.findById(req.studentId).select('-password');
+        if (!student) {
+            return res.status(404).json({ message: "Student not found" });
+        }
+
+        res.status(200).json({
+            id: student._id,
+            name: student.name,
+            rollNumber: student.rollNumber,
+            branch: student.branch,
+            year: student.year,
+            profilePhoto: student.profilePhoto,
+            phoneNumber: student.phoneNumber || '',
+            parentMobileNumber: student.parentMobileNumber || '',
+            email: student.email,
+
+            is_active: student.is_active
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+}));
 
 // to read announcement
 studentApp.get('/all-announcements',expressAsyncHandler(async (req, res) => {

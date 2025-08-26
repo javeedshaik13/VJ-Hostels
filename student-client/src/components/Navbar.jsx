@@ -1,10 +1,10 @@
-import { useUser } from '../context/UserContext'
+import useCurrentUser from '../hooks/useCurrentUser'
 import { Home, Bell, Users, MessageSquare, LogOut, User, Utensils } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import '../styles/custom.css';
 
 function Navbar({ onNavigate, isDesktop = false }) {
-    const { user } = useUser();
+    const { user, loading } = useCurrentUser();
     const location = useLocation();
 
     const handleNavClick = () => {

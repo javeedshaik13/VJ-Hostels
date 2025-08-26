@@ -1,15 +1,25 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { useUser } from '../context/UserContext';
+import useCurrentUser from '../hooks/useCurrentUser';
 
 const ComplaintsList = () => {
-    const { user } = useUser();
+    const { user, loading: userLoading } = useCurrentUser();
     const [complaints, setComplaints] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
     useEffect(() => {
         const fetchComplaints = async () => {
+            if (userLoading) {
+                return; // Wait for user to load
+            }
+
+            if (!user?.rollNumber) {
+                setError('User not found. Please log in.');
+                setLoading(false);
+                return;
+            }
+
             try {
                 const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/student-api/get-complaints/${user.rollNumber}`);
                 setComplaints(response.data || []);
@@ -20,7 +30,7 @@ const ComplaintsList = () => {
             }
         };
         fetchComplaints();
-    }, [user.rollNumber]);
+    }, [user, userLoading]);
 
     if (loading) return <p>Loading complaints...</p>;
     if (error) return <p style={{ color: 'red' }}>{error}</p>;

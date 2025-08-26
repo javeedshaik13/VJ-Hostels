@@ -2,15 +2,31 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
-import { useUser } from '../context/UserContext';
+import useCurrentUser from '../hooks/useCurrentUser';
 
 function Outpass() {
-    const { user } = useUser();
+    const { user, loading } = useCurrentUser();
     const { register, handleSubmit, formState: { errors }, reset } = useForm();
     const navigate = useNavigate();
 
 
     // console.log(user)
+
+    if (loading) {
+        return (
+            <div style={{ textAlign: 'center', padding: '2rem' }}>
+                <p>Loading...</p>
+            </div>
+        );
+    }
+
+    if (!user) {
+        return (
+            <div style={{ textAlign: 'center', padding: '2rem' }}>
+                <p>Please log in to submit an outpass request.</p>
+            </div>
+        );
+    }
 
     const onSubmit = async (data) => {
         try {

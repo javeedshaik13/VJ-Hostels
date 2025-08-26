@@ -2,9 +2,11 @@ import { useForm } from "react-hook-form";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import axios from "axios";
-import { useUser } from "../context/UserContext";
+// Removed UserContext import - will be replaced with direct token storage
 import img5 from "../assets/1.jpg";
 import { FiEye, FiEyeOff } from "react-icons/fi";
+// import DebugAuth from "./DebugAuth";
+// import TestToken from "./TestToken";
 
 const StudentLogin = () => {
   const {
@@ -13,7 +15,6 @@ const StudentLogin = () => {
     formState: { errors },
   } = useForm();
   const navigate = useNavigate();
-  const { login } = useUser();
   const [passwordVisible, setPasswordVisible] = useState(false);
 
   const onSubmit = async (data) => {
@@ -22,11 +23,12 @@ const StudentLogin = () => {
         `${import.meta.env.VITE_SERVER_URL}/student-api/login`,
         data
       );
-      login(response.data.student);
-      console.log("Login response:", response.data);
+
+      // Only store the token, user data will be fetched when needed
       localStorage.setItem("token", response.data.token);
+      console.log("Login successful:", response.data);
       alert("Login Successful!");
-      // navigate("/home");
+      navigate("/home");
     } catch (error) {
       alert(error.response?.data?.message || "Login failed");
     }
@@ -39,6 +41,8 @@ const StudentLogin = () => {
 
   return (
     <div className="login-page" style={{ backgroundImage: `url(${img5})` }}>
+      {/* <DebugAuth /> */}
+      {/* <TestToken /> */}
       <div className="login-container">
         <div className="login-card">
           <h2 className="login-title">Student Login</h2>

@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './index.css';
 import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
-import { UserProvider } from "./context/UserContext.jsx";
+// UserContext removed - now using useCurrentUser hook
 
 import RootLayout from './layouts/RootLayout.jsx';
 import Home from './pages/Home.jsx';
@@ -20,6 +20,7 @@ import OutpassList from './components/OutpassList.jsx';
 import PostComplaint from './components/PostComplaints.jsx';
 import ComplaintsList from './components/ComplaintsList.jsx';
 import Food from './components/Food.jsx';
+import AuthHandler from './components/AuthHandler.jsx';
 
 const browserRouterObj = createBrowserRouter([
   {
@@ -29,6 +30,10 @@ const browserRouterObj = createBrowserRouter([
   {
     path: '/login',
     element: <StudentLogin />,
+  },
+  {
+    path: '/auth/callback',
+    element: <AuthHandler />,
   },
   {
     path: '/home',
@@ -84,10 +89,7 @@ const browserRouterObj = createBrowserRouter([
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <UserProvider>
-      <RouterProvider router={browserRouterObj} />
-    </UserProvider>
-
+    <RouterProvider router={browserRouterObj} />
   </StrictMode>,
 );
 
