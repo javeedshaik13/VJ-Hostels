@@ -4,7 +4,7 @@ import { useUser } from '../context/UserContext';
 
 function StudentProfile() {
   const { user, login } = useUser();
-  const [activeTab, setActiveTab] = useState('profile');
+  const [activeTab, setActiveTab] = useState('details');
 
   // State for password change
   const [passwordData, setPasswordData] = useState({
@@ -190,6 +190,12 @@ function StudentProfile() {
       {/* Tab Navigation */}
       <div style={styles.tabContainer}>
         <button
+          style={activeTab === 'details' ? {...styles.tabButton, ...styles.activeTab} : styles.tabButton}
+          onClick={() => setActiveTab('details')}
+        >
+          Student Details
+        </button>
+        <button
           style={activeTab === 'profile' ? {...styles.tabButton, ...styles.activeTab} : styles.tabButton}
           onClick={() => setActiveTab('profile')}
         >
@@ -208,6 +214,18 @@ function StudentProfile() {
           Change Password
         </button>
       </div>
+
+      {/* Student Details Tab */}
+      {activeTab === 'details' && (
+        <div style={styles.infoContainer}>
+          <h3 style={styles.subHeader}>Basic Details</h3>
+          <p><strong>Name:</strong> {user?.name || 'N/A'}</p>
+          <p><strong>Roll Number:</strong> {user?.rollNumber || 'N/A'}</p>
+          <p><strong>Email:</strong> {user?.email || 'N/A'}</p>
+          <p><strong>Department:</strong> {user?.department || 'N/A'}</p>
+          <p><strong>Year:</strong> {user?.year || 'N/A'}</p>
+        </div>
+      )}
 
       {/* Profile Info Tab */}
       {activeTab === 'profile' && (
