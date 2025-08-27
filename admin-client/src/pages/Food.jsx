@@ -14,6 +14,8 @@ import {
     LineElement
 } from 'chart.js';
 import { Bar, Pie, Line } from 'react-chartjs-2';
+import FoodCountManager from '../components/FoodCountManager';
+import StudentFoodManager from '../components/StudentFoodManager';
 
 // Register ChartJS components
 ChartJS.register(
@@ -204,6 +206,20 @@ const Food = () => {
                     >
                         <i className="bi bi-star me-2"></i>
                         Feedback & Reviews
+                    </button>
+                    <button
+                        className={`btn ${activeTab === 'count' ? 'btn-primary' : 'btn-outline-primary'}`}
+                        onClick={() => setActiveTab('count')}
+                    >
+                        <i className="bi bi-calculator me-2"></i>
+                        Food Count
+                    </button>
+                    <button
+                        className={`btn ${activeTab === 'students' ? 'btn-primary' : 'btn-outline-primary'}`}
+                        onClick={() => setActiveTab('students')}
+                    >
+                        <i className="bi bi-people me-2"></i>
+                        Student Management
                     </button>
                 </div>
             </div>
@@ -674,6 +690,14 @@ const Food = () => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {activeTab === 'count' && (
+                <FoodCountManager />
+            )}
+
+            {activeTab === 'students' && (
+                <StudentFoodManager />
             )}
         </div>
     );

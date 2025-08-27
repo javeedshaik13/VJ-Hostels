@@ -11,6 +11,7 @@ const session = require('express-session');
 require('./config/passport');
 
 const authRoutes = require('./routes/authRoutes');
+const foodRoutes = require('./routes/foodRoutes');
 
 const adminApp = require('./APIs/adminAPI');
 const studentApp = require('./APIs/studentAPI');
@@ -45,6 +46,7 @@ app.use('/student-api', studentApp);
 app.use('/admin-api', adminApp);
 app.use('/message-api', messageApp);
 app.use('/food-api', foodApp);
+app.use('/food-api', foodRoutes);
 // app.use('/complaint-api',complaintApp);
 app.use('/auth', authRoutes);
 

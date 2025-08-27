@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import useCurrentUser from '../hooks/useCurrentUser';
-import { Utensils, Star, MessageSquare } from 'lucide-react';
+import { Utensils, Star, MessageSquare, Calendar, Pause } from 'lucide-react';
+import FoodPauseManager from './FoodPauseManager';
+import FoodScheduleViewer from './FoodScheduleViewer';
 
 const Food = () => {
     const { user, loading: userLoading } = useCurrentUser();
@@ -304,6 +306,26 @@ const Food = () => {
                     <Star size={18} />
                     Provide Feedback
                 </div>
+                <div
+                    style={{
+                        ...styles.tab,
+                        ...(activeTab === 'schedule' ? styles.activeTab : {})
+                    }}
+                    onClick={() => setActiveTab('schedule')}
+                >
+                    <Calendar size={18} />
+                    Meal Schedule
+                </div>
+                <div
+                    style={{
+                        ...styles.tab,
+                        ...(activeTab === 'pause' ? styles.activeTab : {})
+                    }}
+                    onClick={() => setActiveTab('pause')}
+                >
+                    <Pause size={18} />
+                    Pause Service
+                </div>
             </div>
 
             {activeTab === 'menu' && (
@@ -436,6 +458,14 @@ const Food = () => {
                         </div>
                     )}
                 </div>
+            )}
+
+            {activeTab === 'schedule' && (
+                <FoodScheduleViewer />
+            )}
+
+            {activeTab === 'pause' && (
+                <FoodPauseManager />
             )}
         </div>
     );
