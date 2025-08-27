@@ -52,6 +52,41 @@ router.get(
 );
 
 
+// Admin Google OAuth
+router.get('/google/admin', 
+    passport.authenticate('google-admin', { scope: ['profile', 'email'] })
+);
+
+router.get(
+  '/admin/callback',
+  (req, res, next) => {
+    passport.authenticate('google-admin', (err, user, info) => {
+      if (err) {
+        console.error("Admin authentication error:", err);
+        return res.redirect(`${process.env.ADMIN_CLIENT_URL || 'http://localhost:5174'}/login?error=auth_failed`);
+      }
+
+      if (!user) {
+        console.log("No admin user found or unauthorized email");
+        return res.redirect(`${process.env.ADMIN_CLIENT_URL || 'http://localhost:5174'}/login?error=unauthorized`);
+      }
+
+      req.logIn(user, (err) => {
+        if (err) {
+          console.error("Admin login error:", err);
+          return res.redirect(`${process.env.ADMIN_CLIENT_URL || 'http://localhost:5174'}/login?error=login_failed`);
+        }
+
+        console.log("Successful admin login for user:", user);
+        const token = generateJwt(user);
+
+        // Redirect with token and admin email as URL parameters for frontend to handle
+        return res.redirect(`${process.env.ADMIN_CLIENT_URL || 'http://localhost:5174'}/auth/callback?token=${token}&admin=${encodeURIComponent(user.email)}`);
+      });
+    })(req, res, next);
+  }
+);
+
 // Logout route
 router.get('/logout', (req, res) => {
     req.logout(err => {
