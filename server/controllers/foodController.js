@@ -37,10 +37,14 @@ const pauseFood = asyncHandler(async (req, res) => {
     }
 
     // Check if a pause record exists for this student and is still editable (future date)
-    const existing = await FoodPause.findOne({ 
-        student_id: studentId,
-        pause_from: { $gt: today }
-    }).sort({ createdAt: -1 });
+    // Skip if studentId is not a valid ObjectId
+    let existing = null;
+    if (studentId && studentId !== 'N/A' && studentId.length === 24) {
+        existing = await FoodPause.findOne({ 
+            student_id: studentId,
+            pause_from: { $gt: today }
+        }).sort({ createdAt: -1 });
+    }
 
     if (existing) {
         // Update both pause and resume fields
@@ -75,6 +79,11 @@ const resumeFood = asyncHandler(async (req, res) => {
     }
 
     // Find the latest pause record for this student
+    // Skip if studentId is not a valid ObjectId
+    if (!studentId || studentId === 'N/A' || studentId.length !== 24) {
+        return res.status(400).json({ error: 'Invalid student ID' });
+    }
+    
     const pause = await FoodPause.findOne({ student_id: studentId }).sort({ createdAt: -1 });
     
     if (!pause) {
