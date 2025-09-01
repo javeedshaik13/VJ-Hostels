@@ -3,6 +3,7 @@ const foodApp = express.Router();
 const expressAsyncHandler = require('express-async-handler');
 const { FoodMenu, FoodFeedback } = require('../models/FoodModel');
 const { verifyAdmin } = require('../middlewares/verifyToken');
+const { getMonthlyMenu, updateDayMenu, getCurrentWeek, updateWeekMenu } = require('../controllers/weeklyMenuController');
 
 // Admin API endpoints
 
@@ -229,5 +230,11 @@ foodApp.get('/student/feedback/:studentId', expressAsyncHandler(async (req, res)
         res.status(500).json({ error: error.message });
     }
 }));
+
+// Weekly menu management routes
+foodApp.get('/menu/monthly', getMonthlyMenu);
+foodApp.put('/menu/day', updateDayMenu);
+foodApp.get('/menu/current-week', getCurrentWeek);
+foodApp.put('/menu/week', updateWeekMenu);
 
 module.exports = foodApp;
