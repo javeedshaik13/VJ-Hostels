@@ -3,9 +3,9 @@ import axios from 'axios';
 import useCurrentUser from '../hooks/useCurrentUser';
 
 const FoodScheduleViewer = () => {
-    const { user } = useCurrentUser();
+    const { user, loading: userLoading } = useCurrentUser();
     const [studentStatus, setStudentStatus] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [statusLoading, setStatusLoading] = useState(false);
     const [weekDates, setWeekDates] = useState([]);
 
     useEffect(() => {
@@ -17,13 +17,13 @@ const FoodScheduleViewer = () => {
 
     const fetchStudentStatus = async () => {
         try {
-            setLoading(true);
+            setStatusLoading(true);
             const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/food-api/student-status?studentId=${user.rollNumber}`);
             setStudentStatus(response.data);
         } catch (error) {
             console.error('Error fetching status:', error);
         } finally {
-            setLoading(false);
+            setStatusLoading(false);
         }
     };
 
@@ -97,10 +97,10 @@ const FoodScheduleViewer = () => {
 
     const getMealTime = (meal) => {
         const times = {
-            'breakfast': '7:00-9:00 AM',
+            'breakfast': '7:30-10:00 AM',
             'lunch': '12:00-2:00 PM',
             'snacks': '4:00-6:00 PM',
-            'dinner': '7:00-9:00 PM'
+            'dinner': '7:30-9:30 PM'
         };
         return times[meal] || '';
     };
@@ -121,7 +121,7 @@ const FoodScheduleViewer = () => {
         return 'active';
     };
 
-    if (loading) {
+    if (userLoading || statusLoading || !user) {
         return (
             <div className="text-center my-4">
                 <div className="spinner-border text-primary" role="status">
@@ -248,3 +248,8 @@ const FoodScheduleViewer = () => {
 };
 
 export default FoodScheduleViewer;
+export const getTodaysMenuFromSchedule = (schedule) => {
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    return schedule.find(item => item.date === todayStr) || null;
+};

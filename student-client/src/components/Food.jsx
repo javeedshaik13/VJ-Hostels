@@ -1,70 +1,180 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import useCurrentUser from '../hooks/useCurrentUser';
-import { Utensils, Star, MessageSquare, Calendar, Pause } from 'lucide-react';
 import FoodPauseManager from './FoodPauseManager';
-import FoodScheduleViewer from './FoodScheduleViewer';
+import FoodScheduleViewer, { getTodaysMenuFromSchedule } from './FoodScheduleViewer';
+import '../styles/Food.css';
+
+// Meal timings (24hr format)
+const mealTimings = {
+    breakfast: { start: "07:00", end: "09:00" },
+    lunch: { start: "12:30", end: "14:00" },
+    snacks: { start: "16:30", end: "18:30" },
+    dinner: { start: "19:30", end: "21:00" }
+};
+
+// Helper to get status and color
+const getMealStatus = (meal) => {
+    const now = new Date();
+    const [startH, startM] = mealTimings[meal].start.split(":").map(Number);
+    const [endH, endM] = mealTimings[meal].end.split(":").map(Number);
+
+    const start = new Date(now);
+    start.setHours(startH, startM, 0, 0);
+    const end = new Date(now);
+    end.setHours(endH, endM, 0, 0);
+
+    const last30 = new Date(end.getTime() - 30 * 60000);
+
+    if (now < start) return { color: "gray", status: "Not started" };
+    if (now >= start && now < last30) return { color: "green", status: "Started" };
+    if (now >= last30 && now < end) return { color: "orange", status: "Ending soon" };
+    if (now >= end) return { color: "red", status: "Ended" };
+};
+
+// Blinking light component
+const BlinkingLight = ({ color }) => (
+    <span
+        className="blinking-light"
+        style={{
+            background: color,
+            animation: color !== 'gray' ? 'blink 1s infinite' : 'none',
+            boxShadow: color !== 'gray' ? `0 0 8px 2px ${color}` : 'none'
+        }}
+    />
+);
 
 const Food = () => {
     const { user, loading: userLoading } = useCurrentUser();
-    const [menu, setMenu] = useState(null);
+    // Weekly food schedule (admin JSON data)
+    const weeklyMenu = [
+        {
+            weekday: "Monday",
+            breakfast: "Idli, Sambar, Chutney",
+            lunch: "Rice, Dal, Paneer Curry, Salad",
+            snacks: "Samosa, Tea",
+            dinner: "Chapati, Mixed Veg Curry, Curd"
+        },
+        {
+            weekday: "Tuesday",
+            breakfast: "Poha, Chutney",
+            lunch: "Jeera Rice, Rajma, Salad",
+            snacks: "Biscuits, Coffee",
+            dinner: "Roti, Aloo Gobi, Raita"
+        },
+        {
+            weekday: "Wednesday",
+            breakfast: "Upma, Chutney",
+            lunch: "Rice, Chole, Salad",
+            snacks: "Pakora, Tea",
+            dinner: "Chapati, Bhindi Masala, Curd"
+        },
+        {
+            weekday: "Thursday",
+            breakfast: "Dosa, Chutney",
+            lunch: "Rice, Sambar, Potato Fry",
+            snacks: "Cake, Coffee",
+            dinner: "Roti, Mixed Veg, Raita"
+        },
+        {
+            weekday: "Friday",
+            breakfast: "Paratha, Curd",
+            lunch: "Rice, Dal Makhani, Salad",
+            snacks: "Chips, Tea",
+            dinner: "Chapati, Paneer Butter Masala, Curd"
+        },
+        {
+            weekday: "Saturday",
+            breakfast: "Puri, Aloo Bhaji",
+            lunch: "Veg Biryani, Raita",
+            snacks: "Mixture, Coffee",
+            dinner: "Roti, Gobi Masala, Curd"
+        },
+        {
+            weekday: "Sunday",
+            breakfast: "Bread, Butter, Jam",
+            lunch: "Rice, Dal Fry, Salad",
+            snacks: "Fruit Salad, Tea",
+            dinner: "Chapati, Veg Korma, Curd"
+        }
+    ];
+
+    // Get today's weekday name
+    const today = new Date();
+    const weekdayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const todayWeekday = weekdayNames[today.getDay()];
+    // Memoize today's menu to avoid flickering
+    const menu = useMemo(() => {
+        const foundMenu = weeklyMenu.find(menu => menu.weekday === todayWeekday);
+        if (foundMenu) {
+            return { ...foundMenu, date: new Date().toISOString() };
+        }
+        return { ...weeklyMenu[0], date: new Date().toISOString() };
+    }, [todayWeekday]);
+
+    const [schedule, setSchedule] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activeTab, setActiveTab] = useState('menu');
-    
     // Feedback form state
     const [mealType, setMealType] = useState('breakfast');
     const [rating, setRating] = useState(5);
     const [feedback, setFeedback] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [submitSuccess, setSubmitSuccess] = useState(false);
-    const [feedbackHistory, setFeedbackHistory] = useState([]);
+
+    // Add blinking animation to document head (once)
+    useEffect(() => {
+        if (!document.getElementById('blink-keyframes')) {
+            const style = document.createElement('style');
+            style.id = 'blink-keyframes';
+            style.innerHTML = `
+                @keyframes blink {
+                    0% { opacity: 1; }
+                    50% { opacity: 0.3; }
+                    100% { opacity: 1; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    }, []);
 
     useEffect(() => {
-        fetchTodayMenu();
-        if (!userLoading && user?.rollNumber) {
-            fetchFeedbackHistory();
-        }
-    }, [user?.rollNumber, userLoading]);
+        fetchSchedule();
+    }, []);
 
-    const fetchTodayMenu = async () => {
+    const fetchSchedule = async () => {
         try {
             setLoading(true);
-            const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/food-api/student/menu/today`);
-            setMenu(response.data);
-            setError(null);
+            // This part is now effectively overridden by the local dummy data for display.
+            // You can keep it for when you want to switch back to live data.
+            // const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/food-api/student/menu/week`);
+            // setSchedule(response.data);
+            // const todaysMenu = getTodaysMenuFromSchedule(response.data);
+            // setMenu(todaysMenu);
+            // setError(todaysMenu ? null : "No menu has been set for today.");
         } catch (err) {
-            if (err.response?.status === 404) {
-                setError("No menu has been set for today.");
-            } else {
-                setError("Failed to load today's menu. Please try again later.");
+            let errorMsg = "Failed to load menu schedule. Please try again later.";
+            if (err.response && err.response.data && err.response.data.message) {
+                errorMsg += `\nDetails: ${err.response.data.message}`;
+            } else if (err.message) {
+                errorMsg += `\nDetails: ${err.message}`;
             }
-            setMenu(null);
+            setError(errorMsg);
+            // setMenu(null); // We are using local menu, so we don't nullify it on error.
         } finally {
             setLoading(false);
         }
     };
 
-    const fetchFeedbackHistory = async () => {
-        try {
-            const response = await axios.get(`${import.meta.env.VITE_SERVER_URL}/food-api/student/feedback/${user.rollNumber}`);
-            setFeedbackHistory(response.data);
-        } catch (err) {
-            console.error("Failed to fetch feedback history:", err);
-        }
-    };
-
     const handleSubmitFeedback = async (e) => {
         e.preventDefault();
-        
         if (!user) {
             setError("You must be logged in to submit feedback.");
             return;
         }
-        
         try {
             setSubmitting(true);
-            
             const feedbackData = {
                 studentId: user.rollNumber,
                 studentName: user.name,
@@ -72,18 +182,12 @@ const Food = () => {
                 rating: parseInt(rating),
                 feedback
             };
-            
             await axios.post(`${import.meta.env.VITE_SERVER_URL}/food-api/student/feedback`, feedbackData);
-            
             setSubmitSuccess(true);
             setFeedback('');
-            fetchFeedbackHistory();
-            
-            // Reset success message after 3 seconds
             setTimeout(() => {
                 setSubmitSuccess(false);
             }, 3000);
-            
         } catch (err) {
             setError("Failed to submit feedback. Please try again.");
             console.error(err);
@@ -92,175 +196,14 @@ const Food = () => {
         }
     };
 
-    // Styles
-    const styles = {
-        container: {
-            padding: '2rem',
-            maxWidth: '1200px',
-            margin: '0 auto'
-        },
-        header: {
-            textAlign: 'center',
-            marginBottom: '2rem'
-        },
-        tabContainer: {
-            display: 'flex',
-            borderBottom: '1px solid #ddd',
-            marginBottom: '2rem'
-        },
-        tab: {
-            padding: '1rem 2rem',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            borderBottom: '3px solid transparent',
-            transition: 'all 0.3s ease'
-        },
-        activeTab: {
-            borderBottom: '3px solid #0D6EFD',
-            fontWeight: 'bold',
-            color: '#0D6EFD'
-        },
-        menuCard: {
-            backgroundColor: '#fff',
-            borderRadius: '10px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-            padding: '2rem',
-            marginBottom: '2rem'
-        },
-        mealSection: {
-            marginBottom: '1.5rem',
-            padding: '1rem',
-            borderRadius: '8px',
-            backgroundColor: '#f8f9fa'
-        },
-        mealTitle: {
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            fontWeight: 'bold',
-            marginBottom: '0.5rem',
-            color: '#0D6EFD'
-        },
-        feedbackForm: {
-            backgroundColor: '#fff',
-            borderRadius: '10px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-            padding: '2rem'
-        },
-        formGroup: {
-            marginBottom: '1.5rem'
-        },
-        label: {
-            display: 'block',
-            marginBottom: '0.5rem',
-            fontWeight: '500'
-        },
-        select: {
-            width: '100%',
-            padding: '0.75rem',
-            borderRadius: '5px',
-            border: '1px solid #ddd',
-            fontSize: '1rem'
-        },
-        ratingContainer: {
-            display: 'flex',
-            gap: '0.5rem'
-        },
-        starButton: {
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            fontSize: '1.5rem',
-            color: '#ccc',
-            transition: 'color 0.2s ease'
-        },
-        activeStar: {
-            color: '#FFD700'
-        },
-        textarea: {
-            width: '100%',
-            padding: '0.75rem',
-            borderRadius: '5px',
-            border: '1px solid #ddd',
-            fontSize: '1rem',
-            minHeight: '100px',
-            resize: 'vertical'
-        },
-        submitButton: {
-            backgroundColor: '#0D6EFD',
-            color: 'white',
-            border: 'none',
-            borderRadius: '5px',
-            padding: '0.75rem 1.5rem',
-            fontSize: '1rem',
-            cursor: 'pointer',
-            transition: 'background-color 0.2s ease'
-        },
-        disabledButton: {
-            backgroundColor: '#6c757d',
-            cursor: 'not-allowed'
-        },
-        successMessage: {
-            backgroundColor: '#d4edda',
-            color: '#155724',
-            padding: '1rem',
-            borderRadius: '5px',
-            marginBottom: '1rem'
-        },
-        errorMessage: {
-            backgroundColor: '#f8d7da',
-            color: '#721c24',
-            padding: '1rem',
-            borderRadius: '5px',
-            marginBottom: '1rem'
-        },
-        historyCard: {
-            backgroundColor: '#f8f9fa',
-            borderRadius: '8px',
-            padding: '1rem',
-            marginBottom: '1rem',
-            border: '1px solid #ddd'
-        },
-        historyHeader: {
-            display: 'flex',
-            justifyContent: 'space-between',
-            marginBottom: '0.5rem'
-        },
-        historyMealType: {
-            textTransform: 'capitalize',
-            fontWeight: '500'
-        },
-        historyRating: {
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.25rem',
-            color: '#FFD700'
-        },
-        historyDate: {
-            color: '#6c757d',
-            fontSize: '0.875rem'
-        },
-        loadingSpinner: {
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'center',
-            height: '200px'
-        }
-    };
-
-    const renderStarRating = (value) => {
+    const renderStarRating = () => {
         return (
-            <div style={styles.ratingContainer}>
+            <div className="rating-container">
                 {[1, 2, 3, 4, 5].map((star) => (
                     <button
                         key={star}
                         type="button"
-                        style={{
-                            ...styles.starButton,
-                            ...(star <= rating ? styles.activeStar : {})
-                        }}
+                        className={`star-button ${star <= rating ? 'active-star' : ''}`}
                         onClick={() => setRating(star)}
                     >
                         ★
@@ -271,193 +214,148 @@ const Food = () => {
     };
 
     const formatDate = (dateString) => {
-        const options = { year: 'numeric', month: 'long', day: 'numeric' };
-        return new Date(dateString).toLocaleDateString(undefined, options);
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        return date.toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
     };
 
     return (
-        <div style={styles.container}>
-            <div style={styles.header}>
-                <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
-                    <Utensils size={28} />
-                    Hostel Food Services
-                </h2>
-                <p>View today's menu and provide your valuable feedback</p>
+        <div className="food-container">
+            <div className="food-header">
+                <h2>Hostel Food Menu & Feedback</h2>
             </div>
-
-            <div style={styles.tabContainer}>
+            <div className="tab-container">
                 <div
-                    style={{
-                        ...styles.tab,
-                        ...(activeTab === 'menu' ? styles.activeTab : {})
-                    }}
+                    className={`tab ${activeTab === 'menu' ? 'active-tab' : ''}`}
                     onClick={() => setActiveTab('menu')}
                 >
-                    <Utensils size={18} />
-                    Today's Menu
+                    <i className="bi bi-list"></i> Today's Menu
                 </div>
                 <div
-                    style={{
-                        ...styles.tab,
-                        ...(activeTab === 'feedback' ? styles.activeTab : {})
-                    }}
+                    className={`tab ${activeTab === 'feedback' ? 'active-tab' : ''}`}
                     onClick={() => setActiveTab('feedback')}
                 >
-                    <Star size={18} />
-                    Provide Feedback
+                    <i className="bi bi-chat-dots"></i> Feedback
                 </div>
                 <div
-                    style={{
-                        ...styles.tab,
-                        ...(activeTab === 'schedule' ? styles.activeTab : {})
-                    }}
+                    className={`tab ${activeTab === 'schedule' ? 'active-tab' : ''}`}
                     onClick={() => setActiveTab('schedule')}
                 >
-                    <Calendar size={18} />
-                    Meal Schedule
+                    <i className="bi bi-calendar-week"></i> Meal Schedule
                 </div>
                 <div
-                    style={{
-                        ...styles.tab,
-                        ...(activeTab === 'pause' ? styles.activeTab : {})
-                    }}
+                    className={`tab ${activeTab === 'pause' ? 'active-tab' : ''}`}
                     onClick={() => setActiveTab('pause')}
                 >
-                    <Pause size={18} />
-                    Pause Service
+                    <i className="bi bi-pause-circle"></i> Pause Service
                 </div>
             </div>
-
+            {/*menu tab*/}
             {activeTab === 'menu' && (
                 <div>
-                    {loading ? (
-                        <div style={styles.loadingSpinner}>
-                            <div className="spinner-border text-primary" role="status">
-                                <span className="visually-hidden">Loading...</span>
-                            </div>
-                        </div>
-                    ) : error ? (
-                        <div style={styles.errorMessage}>{error}</div>
-                    ) : menu ? (
-                        <div style={styles.menuCard}>
-                            <h3 style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
-                                Menu for {formatDate(menu.date)}
+                    {menu ? (
+                        <div className="menu-card">
+                            <h3>
+                               Today's Menu {formatDate(menu.date)}
                             </h3>
-
-                            <div style={styles.mealSection}>
-                                <div style={styles.mealTitle}>
-                                    <span>🌅</span> Breakfast
-                                </div>
-                                <p>{menu.breakfast}</p>
-                            </div>
-
-                            <div style={styles.mealSection}>
-                                <div style={styles.mealTitle}>
-                                    <span>🌞</span> Lunch
-                                </div>
-                                <p>{menu.lunch}</p>
-                            </div>
-
-                            {menu.snacks && (
-                                <div style={styles.mealSection}>
-                                    <div style={styles.mealTitle}>
-                                        <span>🍪</span> Snacks
+                            <div className='card' style={{border: '1px solid whitesmoke',boxShadow: '0 4px 12px rgba(0,0,0,0.5)', padding: '1rem',borderRadius: '10px'}}>
+                                <div className="meal-section">
+                                    <div className='card' style={{border: '1px solid whitesmoke',boxShadow: '0 4px 12px rgba(0,0,0,0.4)', padding: '1rem',borderRadius: '10px'}} >
+                                        <div className="meal-title">
+                                            <BlinkingLight color={getMealStatus('breakfast').color} />
+                                            Breakfast
+                                        </div>
+                                    <p>{menu.breakfast}</p>
                                     </div>
-                                    <p>{menu.snacks}</p>
                                 </div>
-                            )}
-
-                            <div style={styles.mealSection}>
-                                <div style={styles.mealTitle}>
-                                    <span>🌙</span> Dinner
+                                <div className="meal-section">
+                                    <div className='card' style={{border: '1px solid whitesmoke',boxShadow: '0 4px 12px rgba(0,0,0,0.4)', padding: '1rem',borderRadius: '10px'}} >
+                                    <div className="meal-title">
+                                        <BlinkingLight color={getMealStatus('lunch').color} />
+                                        Lunch
+                                    </div>
+                                    <p>{menu.lunch}</p>
                                 </div>
-                                <p>{menu.dinner}</p>
+                                </div>
+                                {menu.snacks && (
+                                    <div className="meal-section">
+                                         <div className='card' style={{border: '1px solid whitesmoke',boxShadow: '0 4px 12px rgba(0,0,0,0.4)', padding: '1rem',borderRadius: '10px'}} >
+                                        <div className="meal-title">
+                                            <BlinkingLight color={getMealStatus('snacks').color} />
+                                            Snacks
+                                        </div>
+                                        <p>{menu.snacks}</p>
+                                    </div>
+                                    </div>
+                                )}
+                                <div className="meal-section">
+                                    <div className='card' style={{border: '1px solid whitesmoke',boxShadow: '0 4px 12px rgba(0,0,0,0.4)', padding: '1rem',borderRadius: '10px'}} >
+                                    <div className="meal-title">
+                                        <BlinkingLight color={getMealStatus('dinner').color} />
+                                        Dinner
+                                    </div>
+                                    <p>{menu.dinner}</p>
+                                </div>
+                            </div>
                             </div>
                         </div>
                     ) : (
-                        <div style={styles.errorMessage}>No menu available for today.</div>
+                        <div className="error-message">No menu available for today.</div>
                     )}
                 </div>
             )}
-
+            {/* Feedback Form */}
             {activeTab === 'feedback' && (
-                <div>
-                    <div style={styles.feedbackForm}>
-                        <h3 style={{ marginBottom: '1.5rem' }}>Share Your Feedback</h3>
-
-                        {submitSuccess && (
-                            <div style={styles.successMessage}>
-                                Your feedback has been submitted successfully!
-                            </div>
-                        )}
-
-                        {error && <div style={styles.errorMessage}>{error}</div>}
-
-                        <form onSubmit={handleSubmitFeedback}>
-                            <div style={styles.formGroup}>
-                                <label style={styles.label}>Select Meal</label>
-                                <select
-                                    style={styles.select}
-                                    value={mealType}
-                                    onChange={(e) => setMealType(e.target.value)}
-                                    required
-                                >
-                                    <option value="breakfast">Breakfast</option>
-                                    <option value="lunch">Lunch</option>
-                                    <option value="snacks">Snacks</option>
-                                    <option value="dinner">Dinner</option>
-                                </select>
-                            </div>
-
-                            <div style={styles.formGroup}>
-                                <label style={styles.label}>Rating</label>
-                                {renderStarRating(rating)}
-                            </div>
-
-                            <div style={styles.formGroup}>
-                                <label style={styles.label}>Your Comments (Optional)</label>
-                                <textarea
-                                    style={styles.textarea}
-                                    value={feedback}
-                                    onChange={(e) => setFeedback(e.target.value)}
-                                    placeholder="Share your thoughts about the food..."
-                                ></textarea>
-                            </div>
-
-                            <button
-                                type="submit"
-                                style={{
-                                    ...styles.submitButton,
-                                    ...(submitting ? styles.disabledButton : {})
-                                }}
-                                disabled={submitting}
-                            >
-                                {submitting ? 'Submitting...' : 'Submit Feedback'}
-                            </button>
-                        </form>
-                    </div>
-
-                    {feedbackHistory.length > 0 && (
-                        <div style={{ marginTop: '2rem' }}>
-                            <h3 style={{ marginBottom: '1rem' }}>Your Recent Feedback</h3>
-                            
-                            {feedbackHistory.slice(0, 5).map((item) => (
-                                <div key={item._id} style={styles.historyCard}>
-                                    <div style={styles.historyHeader}>
-                                        <span style={styles.historyMealType}>{item.mealType}</span>
-                                        <span style={styles.historyRating}>
-                                            {item.rating} <Star size={16} fill="#FFD700" />
-                                        </span>
-                                    </div>
-                                    {item.feedback && <p>{item.feedback}</p>}
-                                    <div style={styles.historyDate}>
-                                        {formatDate(item.createdAt)}
-                                    </div>
-                                </div>
-                            ))}
+                <form className="feedback-form" onSubmit={handleSubmitFeedback}>
+                    {submitSuccess && (
+                        <div className="success-message">
+                            Feedback submitted successfully!
                         </div>
                     )}
-                </div>
+                    {error && (
+                        <div className="error-message">{error}</div>
+                    )}
+                    <div className="form-group">
+                        <label className="form-label">Meal Type</label>
+                        <select
+                            className="form-select"
+                            value={mealType}
+                            onChange={(e) => setMealType(e.target.value)}
+                            disabled={submitting}
+                        >
+                            <option value="breakfast">Breakfast</option>
+                            <option value="lunch">Lunch</option>
+                            <option value="snacks">Snacks</option>
+                            <option value="dinner">Dinner</option>
+                        </select>
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label">Rating</label>
+                        {renderStarRating()}
+                    </div>
+                    <div className="form-group">
+                        <label className="form-label">Feedback</label>
+                        <textarea
+                            className="form-textarea"
+                            value={feedback}
+                            onChange={(e) => setFeedback(e.target.value)}
+                            disabled={submitting}
+                            required
+                        />
+                    </div>
+                    <button
+                        type="submit"
+                        className="submit-button"
+                        disabled={submitting}
+                    >
+                        {submitting ? 'Submitting...' : 'Submit Feedback'}
+                    </button>
+                </form>
             )}
 
             {activeTab === 'schedule' && (

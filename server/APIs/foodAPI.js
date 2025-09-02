@@ -152,25 +152,83 @@ foodApp.get('/admin/feedback/stats', verifyAdmin, expressAsyncHandler(async (req
 }));
 
 // Student API endpoints
+// Get student food pause/resume status
+foodApp.get('/student-status', expressAsyncHandler(async (req, res) => {
+    try {
+        const { studentId } = req.query;
+        if (!studentId) {
+            return res.status(400).json({ message: 'studentId is required' });
+        }
+        const StudentModel = require('../models/StudentModel');
+        const student = await StudentModel.findOne({ rollNumber: studentId });
+        if (!student) {
+            return res.status(404).json({ message: 'Student not found' });
+        }
+        // Assuming pause/resume info is stored in student document
+        // If not, adjust according to your schema
+        res.status(200).json({
+            pause_from: student.pause_from || null,
+            resume_from: student.resume_from || null,
+            pause_meals: student.pause_meals || '',
+            resume_meals: student.resume_meals || ''
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+}));
+// Get weekly food menu for students
+foodApp.get('/student/menu/week', expressAsyncHandler(async (req, res) => {
+    try {
+        // Get start and end of current week (Monday to Sunday)
+        const now = new Date();
+        const dayOfWeek = now.getDay(); // 0 (Sun) - 6 (Sat)
+        // Calculate Monday
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7));
+        // Get YYYY-MM-DD for Monday and Sunday
+        const mondayStr = monday.toISOString().split('T')[0];
+        const sunday = new Date(monday);
+        sunday.setDate(monday.getDate() + 6);
+        const sundayStr = sunday.toISOString().split('T')[0];
+        // Find all menus where date is between monday and sunday (date part only)
+        const menus = await FoodMenu.aggregate([
+            {
+                $addFields: {
+                    dateStr: { $dateToString: { format: "%Y-%m-%d", date: "$date", timezone: "UTC" } }
+                }
+            },
+            {
+                $match: {
+                    dateStr: { $gte: mondayStr, $lte: sundayStr }
+                }
+            },
+            { $sort: { date: 1 } }
+        ]);
+        res.status(200).json(menus);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+}));
 
 // Get today's food menu for students
 foodApp.get('/student/menu/today', expressAsyncHandler(async (req, res) => {
     try {
         const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        
+        // Get YYYY-MM-DD string for today in UTC
+        const todayStr = today.toISOString().split('T')[0];
+        // Find menu where date matches today (date part only)
         let menu = await FoodMenu.findOne({
-            date: {
-                $gte: today,
-                $lt: new Date(today.getTime() + 24 * 60 * 60 * 1000)
+            $expr: {
+                $eq: [
+                    { $dateToString: { format: "%Y-%m-%d", date: "$date", timezone: "UTC" } },
+                    todayStr
+                ]
             }
         });
-        
         if (!menu) {
             res.status(404).json({ message: "No menu found for today" });
             return;
         }
-        
         res.status(200).json(menu);
     } catch (error) {
         res.status(500).json({ error: error.message });
