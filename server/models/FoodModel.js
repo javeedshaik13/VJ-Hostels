@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-// Food Menu Schema
+// Food Menu Schema - Updated for weekly structure
 const foodMenuSchema = new mongoose.Schema({
     date: {
         type: Date,
@@ -23,6 +23,77 @@ const foodMenuSchema = new mongoose.Schema({
         type: String,
         required: false
     }
+});
+
+// Weekly Food Menu Schema - New schema for monthly menu management
+const weeklyFoodMenuSchema = new mongoose.Schema({
+    month: {
+        type: Number,
+        required: true,
+        min: 1,
+        max: 12
+    },
+    year: {
+        type: Number,
+        required: true
+    },
+    week: {
+        type: Number,
+        required: true,
+        min: 1,
+        max: 4
+    },
+    weekName: {
+        type: String,
+        required: true,
+        enum: ['week1', 'week2', 'week3', 'week4']
+    },
+    days: {
+        monday: {
+            breakfast: { type: String, default: '' },
+            lunch: { type: String, default: '' },
+            snacks: { type: String, default: '' },
+            dinner: { type: String, default: '' }
+        },
+        tuesday: {
+            breakfast: { type: String, default: '' },
+            lunch: { type: String, default: '' },
+            snacks: { type: String, default: '' },
+            dinner: { type: String, default: '' }
+        },
+        wednesday: {
+            breakfast: { type: String, default: '' },
+            lunch: { type: String, default: '' },
+            snacks: { type: String, default: '' },
+            dinner: { type: String, default: '' }
+        },
+        thursday: {
+            breakfast: { type: String, default: '' },
+            lunch: { type: String, default: '' },
+            snacks: { type: String, default: '' },
+            dinner: { type: String, default: '' }
+        },
+        friday: {
+            breakfast: { type: String, default: '' },
+            lunch: { type: String, default: '' },
+            snacks: { type: String, default: '' },
+            dinner: { type: String, default: '' }
+        },
+        saturday: {
+            breakfast: { type: String, default: '' },
+            lunch: { type: String, default: '' },
+            snacks: { type: String, default: '' },
+            dinner: { type: String, default: '' }
+        },
+        sunday: {
+            breakfast: { type: String, default: '' },
+            lunch: { type: String, default: '' },
+            snacks: { type: String, default: '' },
+            dinner: { type: String, default: '' }
+        }
+    }
+}, {
+    timestamps: true
 });
 
 // Food Feedback Schema
@@ -60,6 +131,7 @@ const foodFeedbackSchema = new mongoose.Schema({
 });
 
 const FoodMenu = mongoose.model('FoodMenu', foodMenuSchema);
+const WeeklyFoodMenu = mongoose.model('WeeklyFoodMenu', weeklyFoodMenuSchema);
 const FoodFeedback = mongoose.model('FoodFeedback', foodFeedbackSchema);
 
-module.exports = { FoodMenu, FoodFeedback };
+module.exports = { FoodMenu, WeeklyFoodMenu, FoodFeedback };
